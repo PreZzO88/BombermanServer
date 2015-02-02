@@ -30,6 +30,7 @@ server.listen(8080);
 // Create a Socket.IO instance, passing it our server
 
 //var socket = io.listen(server);
+var io = require('socket.io');
 var socket = io.listen(app);
 var STATUS = { PLAYING: 1, GAMEOVER: 2 };
 var games = { };
