@@ -15,6 +15,13 @@ app.listen(app.get('port'), function() {
 
 
 */
+
+var express = require('express');
+var app = express.createServer();
+var sio = require("socket.io");
+var socket = sio.listen(app);
+
+/*
 // Require HTTP module (to start server) and Socket.IO
 var http = require('http'), io = require('socket.io');
 
@@ -28,8 +35,9 @@ var server = http.createServer(function(req, res){
 server.listen(80);
 
 // Create a Socket.IO instance, passing it our server
+*/
+//var socket = io.listen(server);
 
-var socket = io.listen(server);
 var STATUS = { PLAYING: 1, GAMEOVER: 2 };
 var games = { };
 var tickrate = 1000 / 66;
