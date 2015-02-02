@@ -767,7 +767,7 @@ function spawnPlayer(gameID, color) {
 		p.speed = 30;
 		p.noba = 1;
 		p.armor = 10;
-		isStopped = 1;
+		p.isStopped = 1;
 		p.altDir = 0;
 		p.nobp = 0;
 		p.expStr = 1;
@@ -792,7 +792,7 @@ function newGame(gameID) {
 		p.altDir = 0;
 		p.armor = 10;
 		p.nobp = 0;
-		isStopped = 1;
+		p.isStopped = 1;
 		p.expStr = 1;
 		p.score = 0;
 		spawn.spawn.push({ c: p.color, pos: player });
