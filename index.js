@@ -48,6 +48,7 @@ server.listen(80);
 
 // Create a Socket.IO instance, passing it our server
 */
+var io = require('socket.io');
 var socket = io.listen(wss);
 
 var STATUS = { PLAYING: 1, GAMEOVER: 2 };
