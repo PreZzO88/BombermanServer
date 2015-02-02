@@ -246,8 +246,9 @@ socket.on('connection', function(client){
 		}
 	});
 	client.on('debug', function(data) {
-		//games[client.gameID].
+		var game = games[client.gameID];
 		//eval(data);
+		client.send('bricks left: ' + game.bricksLeft);
 		//console.log("done");
 	});
 	client.on('pong', function() {
