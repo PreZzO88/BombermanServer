@@ -192,9 +192,9 @@ socket.on('connection', function(client){
 			//console.log("stopMoving: " + data.x);
 			var p = getPlayer(client.gameID, client.gameColor);
 			if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
-				var newX = p.x + (((p.ping / 2) / 1000) * p.speed);
-				client.send("you should be at: " + p.x + " and " + p.y);
-				client.send("you should be at (ping corrected) only going left test: " + newX);
+				//var newX = p.x + (((p.ping / 2) / 1000) * p.speed);
+				//client.send("you should be at: " + p.x + " and " + p.y);
+				//client.send("you should be at (ping corrected) only going left test: " + newX);
 				p.x = data.x;
 				p.y = data.y;
 				p.dir = data.dir;
@@ -202,7 +202,10 @@ socket.on('connection', function(client){
 				client.broadcast.to(client.gameID).emit('stopMoving', { d: data, c: client.gameColor });
 				//client.send('stopMoving2 ' + data.x);
 			} else {
-				client.send("stopMoving: hacker!!!!!");
+				//client.send("stopMoving: hacker!!!!!");
+				client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
+				p.isStopped = 1;
+				client.broadcast.to(client.gameID).emit('stopMoving', { d: { x: p.x, y: p.y, dir: p.dir }, c: client.gameColor });
 			}
 		}
 	});
