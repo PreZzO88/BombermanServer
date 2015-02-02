@@ -25,7 +25,7 @@ var server = http.createServer(function(req, res){
 	res.writeHead(200,{ 'Content-Type': 'text/html' }); 
 	res.end('<h1>Hello Socket Lover!</h1>');
 });
-server.listen(8080);
+server.listen(80);
 
 // Create a Socket.IO instance, passing it our server
 
