@@ -1,14 +1,15 @@
 {
-  "name": "node-js-getting-started",
-  "version": "0.1.2",
-  "description": "A sample Node.js app using Express 4",
+  "name": "Bomberman",
+  "version": "0.1.0",
+  "description": "Bomberman Server",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "~4.9.x",
-	"cool-ascii-faces": "~1.3.x"
+	"cool-ascii-faces": "~1.3.x",
+	"socket.io": "~1.3.2"
   },
   "engines": {
     "node": "0.10.x"
