@@ -6,7 +6,7 @@ app.set('port', (process.env.PORT || 5000));
 app.use(express.static(__dirname + '/public'));
 app.get('/', function(request, response) {
   response.send('Hello World!');
-  
+
 });
 
 app.listen(app.get('port'), function() {
@@ -14,6 +14,7 @@ app.listen(app.get('port'), function() {
 });
 
 
+/*
 // Require HTTP module (to start server) and Socket.IO
 var http = require('http'), io = require('socket.io');
 
@@ -25,9 +26,11 @@ var server = http.createServer(function(req, res){
 	res.end('<h1>Hello Socket Lover!</h1>');
 });
 server.listen(8080);
-
+*/
 // Create a Socket.IO instance, passing it our server
-var socket = io.listen(server);
+
+//var socket = io.listen(server);
+var socket = io.listen(app);
 var STATUS = { PLAYING: 1, GAMEOVER: 2 };
 var games = { };
 var tickrate = 1000 / 66;
