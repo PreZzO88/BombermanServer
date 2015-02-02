@@ -3,9 +3,10 @@ var express = require('express');
 var app = express();
 
 app.set('port', (process.env.PORT || 5000));
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(__dirname + '/'));
 app.get('/', function(request, response) {
   response.send('Hello World!');
+
 });
 
 app.listen(app.get('port'), function() {
@@ -20,8 +21,7 @@ var http = require('http'), io = require('socket.io');
 var server = http.createServer(function(req, res){ 
 
 	// Send HTML headers and message
-	res.writeHead(200,{ 'Content-Type': 'text/html', "Access-Control-Allow-Origin": "*" }); 
-	//res.writeHead("Access-Control-Allow-Origin", "*");
+	res.writeHead(200,{ 'Content-Type': 'text/html' }); 
 	res.end('<h1>Hello Socket Lover!</h1>');
 });
 server.listen(8080);
