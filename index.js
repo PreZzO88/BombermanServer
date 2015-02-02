@@ -1,4 +1,4 @@
-var WebSocketServer = require("ws").Server;
+//var WebSocketServer = require("ws").Server;
 var http = require("http");
 var express = require("express");
 var app = express();
@@ -18,8 +18,8 @@ server.listen(port);
 
 console.log("http server listening on %d", port);
 
-var wss = new WebSocketServer({server: server});
-console.log("websocket server created");
+//var wss = new WebSocketServer({server: server});
+//console.log("websocket server created");
 
 
 /*
@@ -38,7 +38,7 @@ server.listen(80);
 // Create a Socket.IO instance, passing it our server
 */
 var io = require('socket.io');
-var socket = io.listen(wss);
+var socket = io.listen(server);
 
 var STATUS = { PLAYING: 1, GAMEOVER: 2 };
 var games = { };
