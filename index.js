@@ -53,7 +53,7 @@ var spawns = [
 		{ x: 21, y: 444 },
 		{ x: 21, y: 234 }
 	];
-createPublicRooms(5);
+createPublicRooms(1);
 
 function createPublicRooms(num) {
 	for (var g = 0; g < num; g++) {
