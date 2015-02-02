@@ -16,10 +16,22 @@ app.listen(app.get('port'), function() {
 
 */
 
-var express = require('express');
-var app = express();
-var sio = require("socket.io");
-var socket = sio.listen(app);
+var WebSocketServer = require("ws").Server
+var http = require("http")
+var express = require("express")
+var app = express()
+var port = process.env.PORT || 5000
+
+app.use(express.static(__dirname + "/"))
+
+var server = http.createServer(app)
+server.listen(port)
+
+console.log("http server listening on %d", port)
+
+var wss = new WebSocketServer({server: server})
+console.log("websocket server created")
+
 
 /*
 // Require HTTP module (to start server) and Socket.IO
@@ -36,7 +48,7 @@ server.listen(80);
 
 // Create a Socket.IO instance, passing it our server
 */
-//var socket = io.listen(server);
+var socket = io.listen(wss);
 
 var STATUS = { PLAYING: 1, GAMEOVER: 2 };
 var games = { };
