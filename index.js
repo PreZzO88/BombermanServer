@@ -17,7 +17,7 @@ app.listen(app.get('port'), function() {
 */
 
 var express = require('express');
-var app = express.createServer();
+var app = express();
 var sio = require("socket.io");
 var socket = sio.listen(app);
 
