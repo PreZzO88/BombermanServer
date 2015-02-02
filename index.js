@@ -1,21 +1,3 @@
-/*var express = require('express');
-//var cool = require('cool-ascii-faces');
-var app = express();
-
-app.set('port', (process.env.PORT || 5000));
-app.use(express.static(__dirname + '/public'));
-app.get('/', function(request, response) {
-  response.send('Hello World!');
-
-});
-
-app.listen(app.get('port'), function() {
-  console.log("Node app is running at localhost:" + app.get('port'));
-});
-
-
-*/
-
 var WebSocketServer = require("ws").Server;
 var http = require("http");
 var express = require("express");
@@ -36,8 +18,8 @@ server.listen(port);
 
 console.log("http server listening on %d", port);
 
-//var wss = new WebSocketServer({server: server});
-//console.log("websocket server created");
+var wss = new WebSocketServer({server: server});
+console.log("websocket server created");
 
 
 /*
@@ -56,7 +38,7 @@ server.listen(80);
 // Create a Socket.IO instance, passing it our server
 */
 var io = require('socket.io');
-var socket = io.listen(server);
+var socket = io.listen(wss);
 
 var STATUS = { PLAYING: 1, GAMEOVER: 2 };
 var games = { };
@@ -81,7 +63,7 @@ function createPublicRooms(num) {
 
 // Add a connect listener
 socket.on('connection', function(client){ 
-	console.log("client connected");
+	//console.log("client connected");
 	client.gamePlaying = false;
 	//clients.push(client.id);
 	client.on('query_rooms', function() {
@@ -192,7 +174,7 @@ socket.on('connection', function(client){
 	client.on('changeDir', function(data) {
 		if (games[client.gameID].status == STATUS.PLAYING) {
 			var p = getPlayer(client.gameID, client.gameColor);
-			console.log(Math.abs((p.x - data.x).toFixed(2)) , Math.abs((p.y - data.y).toFixed(2)));
+			//console.log(Math.abs((p.x - data.x).toFixed(2)) , Math.abs((p.y - data.y).toFixed(2)));
 			if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
 				p.x = data.x;
 				p.y = data.y;
@@ -207,7 +189,7 @@ socket.on('connection', function(client){
 	});
 	client.on('stopMoving', function(data) {
 		if (games[client.gameID].status == STATUS.PLAYING) {
-			console.log("stopMoving: " + data.x);
+			//console.log("stopMoving: " + data.x);
 			var p = getPlayer(client.gameID, client.gameColor);
 			if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
 				client.send("you should be at: " + p.x + " and " + p.y);
@@ -271,13 +253,13 @@ socket.on('connection', function(client){
 
 	// Success!  Now listen to messages to be received
 	client.on('message',function(event){ 
-		console.log('Received message from client!',event);
+		//console.log('Received message from client!',event);
 		//console.log(clients);
 	});
 	client.on('disconnect',function(){
 		//clearInterval(interval);
 		playerExit(client);
-		console.log('client has disconnected');
+		//console.log('client has disconnected');
 		//console.log(client.id);
 		//clients.splice(clients.indexOf(client.id),1);
 	});
@@ -697,7 +679,7 @@ function isOutOfBoard(x, y, dir, speed) {
 			if (pos > 0) { outOfBoard = false; }
 			break;
 	}
-	console.log("pos: " + pos);
+	//console.log("pos: " + pos);
 	return outOfBoard;
 }
 function colorAvailable(gameID, color) {
