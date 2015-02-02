@@ -16,21 +16,27 @@ app.listen(app.get('port'), function() {
 
 */
 
-var WebSocketServer = require("ws").Server
-var http = require("http")
-var express = require("express")
-var app = express()
-var port = process.env.PORT || 5000
+var WebSocketServer = require("ws").Server;
+var http = require("http");
+var express = require("express");
+var app = express();
+app.use(function(req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*');
+  //res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  //res.header('Access-Control-Allow-Headers', 'Content-Type');
+  return next();
+});
+var port = process.env.PORT || 5000;
 
-app.use(express.static(__dirname + "/"))
+app.use(express.static(__dirname + "/"));
 
-var server = http.createServer(app)
-server.listen(port)
+var server = http.createServer(app);
+server.listen(port);
 
-console.log("http server listening on %d", port)
+console.log("http server listening on %d", port);
 
-var wss = new WebSocketServer({server: server})
-console.log("websocket server created")
+var wss = new WebSocketServer({server: server});
+console.log("websocket server created");
 
 
 /*
