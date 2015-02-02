@@ -192,7 +192,7 @@ socket.on('connection', function(client){
 			//console.log("stopMoving: " + data.x);
 			var p = getPlayer(client.gameID, client.gameColor);
 			if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
-				var newX = p.x - ((p.ping / 1000) * p.speed);
+				var newX = p.x + ((p.ping / 1000) * p.speed);
 				client.send("you should be at: " + p.x + " and " + p.y);
 				client.send("you should be at (ping corrected) only going left test: " + newX);
 				p.x = data.x;
