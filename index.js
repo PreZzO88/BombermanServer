@@ -1,4 +1,4 @@
-var express = require('express');
+/*var express = require('express');
 //var cool = require('cool-ascii-faces');
 var app = express();
 
@@ -14,7 +14,7 @@ app.listen(app.get('port'), function() {
 });
 
 
-
+*/
 // Require HTTP module (to start server) and Socket.IO
 var http = require('http'), io = require('socket.io');
 
