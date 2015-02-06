@@ -158,6 +158,7 @@ socket.on('connection', function(client){
 		if (games[client.gameID].status == STATUS.PLAYING) {
 			//console.log("stopMoving: " + data.x);
 			var p = getPlayer(client.gameID, client.gameColor);
+			client.send("you should be at: " + p.x + " and " + p.y);
 			if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
 				//var newX = p.x + (((p.ping / 2) / 1000) * p.speed);
 				//client.send("you should be at: " + p.x + " and " + p.y);
