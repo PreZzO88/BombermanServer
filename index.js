@@ -262,6 +262,10 @@ socket.on('connection', function(client){
 		//console.log('Received message from client!',event);
 		//console.log(clients);
 	});
+	client.on('playerLeave', function() {
+		playerExit(client);
+		client.leave(client.gameID);
+	});
 	client.on('disconnect',function(){
 		//clearInterval(interval);
 		playerExit(client);
