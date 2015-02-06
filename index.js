@@ -263,7 +263,7 @@ function gameLoop(gameID) {
 				// if player is moving
 				if (!player.isStopped) {
 					var calcSpeed = player.speed * game.delta;
-					var outOfBoard = isOutOfBoard(player.x, player.y, player.dir, calcSpeed);
+					var outOfBoard = isOutOfBoard(gameID, player.x, player.y, player.dir, calcSpeed);
 					if (!outOfBoard) {
 						//console.log("x: " + player.x);
 						switch (player.dir) {
@@ -644,31 +644,36 @@ function getPlayerCentre(player) {
 }
 
 // Prevent players from escaping board border limits.
-function isOutOfBoard(x, y, dir, speed) {
+function isOutOfBoard(gameID, x, y, dir, speed) {
 	var check;
-	var pos;
-	var outOfBoard = true;
+	var game = games[gameID];
+	var outOfBoard = false;
+	var row = Math.floor((y - 20) / 30) + 1;
+	var col = Math.floor((x - 20) / 30) + 1;
+	var item;
+	// width of d and u = 29, h = 23 for all
+	// width of l and r = 20
 	switch (dir) {
 		case "u":
 			check = y - speed;
-			pos = Math.floor((check - 20) / 30) + 1;
-			if (pos > 0) { outOfBoard = false; }
+			row = Math.floor((check - 20) / 30) + 1;
 			break;
 		case "d":
 			check = y + 23 + speed;
-			pos = Math.floor((check - 20) / 30) + 1;
-			if (pos < 16) { outOfBoard = false; }
+			row = Math.floor((check - 20) / 30) + 1;
 			break;
 		case "r":
-			check = x + 29 + speed;
-			pos = Math.floor((check - 20) / 30) + 1;
-			if (pos < 20) { outOfBoard = false; }
+			check = x + 20 + speed;
+			col = Math.floor((check - 20) / 30) + 1;
 			break;
 		case "l":
 			check = x - speed;
-			pos = Math.floor((check - 20) / 30) + 1;
-			if (pos > 0) { outOfBoard = false; }
+			col = Math.floor((check - 20) / 30) + 1;
 			break;
+	}
+	item = game.board[row][col].b;
+	if (item == "o" || item == "w" || item == "b" || item == "a") {
+		outOfBoard = true;
 	}
 	//console.log("pos: " + pos);
 	return outOfBoard;
