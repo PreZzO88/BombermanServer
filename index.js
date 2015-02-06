@@ -108,9 +108,10 @@ socket.on('connection', function(client){
 					var attemptJoin = playerJoin(gameID, client, data.n, data.c);
 					//client.send(games);
 					if (attemptJoin == true) {
-						client.emit('iniState', { b: getBoard(gameID), ab: [], ae: [] });
+						client.emit('gameBoard', getBoard(gameID));
 						client.emit("createRoom", "Success");
 						socket.in(gameID).emit("playerJoin", { n: data.n, c: data.c });
+						client.emit('abae', { ab: [], ae: [] });
 						spawnPlayer(gameID, data.c);
 					} else {
 						// Color Not Available or Player Name Taken
