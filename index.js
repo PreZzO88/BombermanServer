@@ -673,7 +673,7 @@ function isOutOfBoard(gameID, x, y, dir, speed) {
 			break;
 	}
 	item = game.board[row][col].b;
-	if (item == "o" || item == "w" || item == "b" || item == "a") {
+	if (item == "o" || item == "w" || item == "b") {
 		outOfBoard = true;
 	}
 	//console.log("pos: " + pos);
