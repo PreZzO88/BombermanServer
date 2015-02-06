@@ -1,42 +1,23 @@
-//var WebSocketServer = require("ws").Server;
 var http = require("http");
 var express = require("express");
 var app = express();
+
+// Fix Cross-Origin-Policy
 app.use(function(req, res, next) {
   res.header('Access-Control-Allow-Origin', 'http://qlinstaranks.com');
   res.header('Access-Control-Allow-Credentials', true);
-  //res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  //res.header('Access-Control-Allow-Headers', 'Content-Type');
   return next();
 });
 var port = process.env.PORT || 5000;
 
 app.use(express.static(__dirname + "/"));
 
+// Create server and listen on port.
 var server = http.createServer(app);
 server.listen(port);
 
 console.log("http server listening on %d", port);
 
-//var wss = new WebSocketServer({server: server});
-//console.log("websocket server created");
-
-
-/*
-// Require HTTP module (to start server) and Socket.IO
-var http = require('http'), io = require('socket.io');
-
-// Start the server at port 8080
-var server = http.createServer(function(req, res){ 
-
-	// Send HTML headers and message
-	res.writeHead(200,{ 'Content-Type': 'text/html' }); 
-	res.end('<h1>Hello Socket Lover!</h1>');
-});
-server.listen(80);
-
-// Create a Socket.IO instance, passing it our server
-*/
 var io = require('socket.io');
 var socket = io.listen(server);
 
@@ -55,6 +36,7 @@ var spawns = [
 	];
 createPublicRooms(1);
 
+// Create Public Rooms.
 function createPublicRooms(num) {
 	for (var g = 0; g < num; g++) {
 		createGame("Public Bomberman Room #" + (g+1), true);
@@ -63,12 +45,15 @@ function createPublicRooms(num) {
 
 // Add a connect listener
 socket.on('connection', function(client){ 
-	//console.log("client connected");
+
 	client.gamePlaying = false;
-	//clients.push(client.id);
+
+	// Player queries room list.
 	client.on('query_rooms', function() {
 		client.emit('query_rooms', getRoomList());
 	});
+
+	// Player queries room information for specific room.
 	client.on('query_room', function(gameID) {
 		if (gameExists(gameID)) {
 			client.emit('query_room', getRoomInfo(gameID));
@@ -76,26 +61,8 @@ socket.on('connection', function(client){
 			client.emit('query_error', { c: "igi" });
 		}
 	});
-	/*client.on('query', function(gameID) {
-		if (gameID !== false) {
-			if (gameExists(gameID)) {
-				if (games[gameID].players.length < 8) {
-					// Return available colors
-					client.emit("query", { c: "info", ac: games[gameID].availableColors, pl: games[gameID].names });
-				} else {
-					// Game is full
-					client.emit("query_error", { c: "gif" });
-				}
-			} else {
-				// Invalid Game ID
-				client.emit("query_error", { c: "igi" });
-			}
-			
-		} else {
-			// Create New Game
-			client.emit("query", { c: "cng"});
-		}
-	});*/
+
+	// When a player creates a room.
 	client.on('createRoom', function(data) {
 		var gameRoomNameTrim = data.rt.trim().replace(/ +/g, " ");
 		if (isValidGameRoomName(gameRoomNameTrim)) {
@@ -127,6 +94,8 @@ socket.on('connection', function(client){
 			client.emit("createRoom_error", { c: "igrn" });
 		}
 	});
+
+	// When player joins a room.
 	client.on('joinRoom', function(data) {
 		//console.log(data);
 		var gameID = data.gameID;
@@ -153,6 +122,8 @@ socket.on('connection', function(client){
 			client.emit("joinRoom_error", { c: "igi" });
 		}
 	});
+
+	// When player requests to spawn.
 	client.on('spawnReq', function() {
 		if (games[client.gameID].status == STATUS.PLAYING) {
 			var p = getPlayer(client.gameID, client.gameColor);
@@ -163,15 +134,8 @@ socket.on('connection', function(client){
 			}
 		}
 	});
-	client.on('playerDied', function() {
-		if (games[client.gameID].status == STATUS.PLAYING) {
-			var p = getPlayer(client.gameID, client.gameColor);
-			p.isDead = true;
-			p.score--;
-			client.broadcast.to(client.gameID).emit('playerDied', { c: client.gameColor });
-		}
-	});
 
+	// When player starts moving or changes direction.
 	client.on('changeDir', function(data) {
 		if (games[client.gameID].status == STATUS.PLAYING) {
 			var p = getPlayer(client.gameID, client.gameColor);
@@ -188,6 +152,8 @@ socket.on('connection', function(client){
 			}
 		}
 	});
+
+	// When player stops moving.
 	client.on('stopMoving', function(data) {
 		if (games[client.gameID].status == STATUS.PLAYING) {
 			//console.log("stopMoving: " + data.x);
@@ -210,9 +176,13 @@ socket.on('connection', function(client){
 			}
 		}
 	});
+
+	// Chat message received and broadcast.
 	client.on('chatmsg', function(data) {
 		client.broadcast.to(client.gameID).emit('chatmsg', { c: client.gameColor, msg: data });
 	});
+
+	// When a player lays a bomb.
 	client.on('layBomb', function(data) {
 		// Calculate the latency from this player to server and player-to-be-sent-to server latency.
 		// It will explode in sync for all players.
@@ -246,33 +216,30 @@ socket.on('connection', function(client){
 			}
 		}
 	});
+	
+	// DELETE ME WHEN DONE
 	client.on('debug', function(data) {
 		var game = games[client.gameID];
 		//eval(data);
 		client.send('bricks left: ' + game.bricksLeft);
 		//console.log("done");
 	});
+
+	// Used to calculate latency (2-way).
 	client.on('pong', function() {
 		var p = getPlayer(client.gameID, client.gameColor);
 		p.ping = new Date().getTime() - games[client.gameID].latencyLastTS;
 		//client.send("Ping is: " + client.gameLatency);
 	});
 
-	// Success!  Now listen to messages to be received
-	client.on('message',function(event){ 
-		//console.log('Received message from client!',event);
-		//console.log(clients);
-	});
+	// Player voluntarily left game.
 	client.on('playerLeave', function() {
 		playerExit(client);
 		client.leave(client.gameID);
 	});
+	// When player closes his tab/browser/internet connection breaks (socket disconnect).
 	client.on('disconnect',function(){
-		//clearInterval(interval);
 		playerExit(client);
-		//console.log('client has disconnected');
-		//console.log(client.id);
-		//clients.splice(clients.indexOf(client.id),1);
 	});
 
 });
