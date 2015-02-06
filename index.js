@@ -244,7 +244,7 @@ socket.on('connection', function(client){
 
 });
 
-
+// Main loop.
 function gameLoop(gameID) {
 	var game = games[gameID];
 	if (game.status == STATUS.PLAYING) {
@@ -319,6 +319,7 @@ function gameLoop(gameID) {
 	}
 }
 
+// Check if player died by entering fire or is in an active explosion.
 function checkIfPlayerDead(gameID, player, row, col) {
 	var item = games[gameID].board[row][col].b;
 	if (item == "f" || item == "g" || item == "h") {
@@ -342,6 +343,7 @@ function checkIfPlayerDead(gameID, player, row, col) {
 	}
 }
 
+// When player leaves, clean up gracefully.
 function playerExit(playerSocket) {
 	if (playerSocket.gamePlaying) {
 		var gameID = playerSocket.gameID;
@@ -361,9 +363,13 @@ function playerExit(playerSocket) {
 	}
 	return true;
 }
+
+// Does game exist.
 function gameExists(gameID) {
 	return (typeof games[gameID] !== "undefined");
 }
+
+// Is Game Room title name taken.
 function isRoomTitleTaken(name) {
 	for (var gameID in games) {
 		if (games[gameID].roomName == name) {
@@ -377,7 +383,7 @@ function isRoomTitleTaken(name) {
 
 // ********** EXPLOSIONS AND BOMBS
 
-
+// Retrieve items behind bricks depending on destruction caused by given bomb.
 function getItemsBehindBricks(bomb) {
 	var row = bomb.row;
 	var col = bomb.col;
@@ -401,6 +407,8 @@ function getItemsBehindBricks(bomb) {
 	}
 	return items;
 }
+
+// Search given game for hidden items behind bricks that will show up when blown up.
 function searchForItemsBehindBricks(gameID, expStr, row, col, dir, isHorizontal) {
 	var newRow = row, newCol = col;
 	var item = false;
@@ -418,6 +426,7 @@ function searchForItemsBehindBricks(gameID, expStr, row, col, dir, isHorizontal)
 	return item;
 }
 
+// Triggered when explosions are done, either show items behind bricks or set all to empty.
 function checkExplosions(gameID, row, col) {
 	var ae;
 	//console.log("checking fire: " + row + " " + col);
@@ -446,6 +455,8 @@ function checkExplosions(gameID, row, col) {
 		setTimeout(function() { newGame(gameID); }, 5200);
 	}
 }
+
+// Update given game's active bombs time left param.
 function updateActiveBombs(delta, gameID) {
 	var ab = games[gameID].activeBombs;
 	for (var bomb in ab) {
@@ -455,6 +466,8 @@ function updateActiveBombs(delta, gameID) {
 		}
 	}
 }
+
+// Update given game's active explosions time left param.
 function updateActiveExplosions(delta, gameID) {
 	var ae = games[gameID].activeExplosions;
 	for (var ex in ae) {
@@ -464,6 +477,8 @@ function updateActiveExplosions(delta, gameID) {
 		}
 	}
 }
+
+// When a bomb in the active bombs queue blows up.
 function explode(bomb) {
 	//f up/down
 	// g middle
@@ -494,6 +509,8 @@ function explode(bomb) {
 	}
 	//setTimeout(function() { checkExplosions(bomb.gid, row, col); }, 2000);
 }
+
+// Triggered when bomb blows up, verifies explosion direction and resulting fire placement.
 function renderExplosion(gameID, expStr, row, col, dir, isHorizontal, owner) {
 	var typeOfFire = (isHorizontal ? "h" : "f");
 	var newRow = row, newCol = col;
@@ -527,6 +544,8 @@ function renderExplosion(gameID, expStr, row, col, dir, isHorizontal, owner) {
 		}
 	}
 }
+
+// Add a new explosion to the queue.
 function addNewExplosion(gameID, row, col, origRow, origCol, typeOfFire, owner) {
 	games[gameID].board[row][col].b = typeOfFire;
 	//console.log("ane", row, col, games[gameID].board[row][col].b);
@@ -542,11 +561,13 @@ function addNewExplosion(gameID, row, col, origRow, origCol, typeOfFire, owner) 
 
 
 
-
+// Retrieve board using gameID.
 function getBoard(gameID) {
 	//return games[gameID].board.map(function(i) { return i.join(""); });
 	return games[gameID].board.map(function(e) { return e.map(function(b) { return b.b }).join(""); })
 }
+
+// Generate a new board for specified game.
 function makeBoard(gameID) {
 	var board = [];
 	board[0] = "ooooooooooooooooooooo";
@@ -572,6 +593,7 @@ function makeBoard(gameID) {
 	return board;
 }
 
+// Check if player has just stepped over a pickable item.
 function checkIfItemPickup(gameID, player, row, col) {
 	var board = games[gameID].board;
 	var item = board[row][col].b;
@@ -599,29 +621,18 @@ function checkIfItemPickup(gameID, player, row, col) {
 	return pickedUp;
 }
 
+// Randomly choose whether a brick, when blown up, will show a certain item or empty.
 function createBrickObj() {
 	var bomb = { b: "b" };
 	var rand = Math.floor(Math.random() * 10);
 	var prob = ["e", "e", "i", "e", "e", "p", "m", "s", "e", "e" ];
-	/*if (rand >= 93) {
-		// Speed increase
-		bomb.i = "s";
-	} else if (rand >= 86) {
-		// More bombs
-		bomb.i = "m";
-	} else if (rand >= 79) {
-		// explosion radius increase
-		bomb.i = "p";
-	} else if (rand >= 74) {
-		// temp armor
-		bomb.i = "i";
-	}*/
 	if (prob[rand] != "e") {
 		bomb.i = prob[rand];
 	}
 	return bomb;
 }
 
+// Retreive row and col depending on player's centre x,y location.
 function getPlayerCentre(player) {
 	var w = (player.dir == "u" || player.dir == "d" ? 29 : 20);
 	var h = 23;
@@ -631,6 +642,8 @@ function getPlayerCentre(player) {
 	var col = Math.floor((cx - 20) / 30) + 1;
 	return { r: row, c: col };
 }
+
+// Prevent players from escaping board border limits.
 function isOutOfBoard(x, y, dir, speed) {
 	var check;
 	var pos;
@@ -660,16 +673,24 @@ function isOutOfBoard(x, y, dir, speed) {
 	//console.log("pos: " + pos);
 	return outOfBoard;
 }
+
+// Is color available for specified game.
 function colorAvailable(gameID, color) {
 	return games[gameID].availableColors[color];
 }
+
+// Is player name valid.
 function isValidName(name) {
 	return name.match(/^[A-Za-z]{1}[A-Za-z0-9_\-~+=!@#$%^&*\(\)\[\]]{1,14}$/);
 }
+
+// Is Game Room name valid.
 function isValidGameRoomName(name) {
 	return name.match(/^[A-Za-z]{1}[A-Za-z0-9\\/_\-! @#$'"%^\.&~=*\[\]\(\)+]{5,49}$/);
 	//'
 }
+
+// Attempt joining player to specified game
 function playerJoin(gameID, socketObj, name, color) {
 	var game = games[gameID];
 	if (game.names.indexOf(name) > -1) {
@@ -703,13 +724,11 @@ function playerJoin(gameID, socketObj, name, color) {
 	socketObj.gameName = name;
 	socketObj.gameColor = color;
 	socketObj.gamePlaying = true;
-	//socketObj.gameLatency = 0;
 	socketObj.join(gameID);
-	//pingPong(socketObj);
-	//console.log(game);
-	//socketObj.send("playerJoin_b", games[gameID].players);
 	return true;
 }
+
+// Ping Pong function used to calculate latency.
 function pingPong(gameID) {
 	games[gameID].latencyLastTS = new Date().getTime();
 	var playerList = games[gameID].players;
@@ -722,6 +741,8 @@ function pingPong(gameID) {
 	}
 	games[gameID].pingTimer = setTimeout(function() { pingPong(gameID); }, 5000);
 }
+
+// Retreive player object using color in specified game.
 function getPlayer(gameID, color) {
 	var game = games[gameID];
 	for (var player in game.players) {
@@ -732,47 +753,43 @@ function getPlayer(gameID, color) {
 	}
 	return false;
 }
+
+// Reset all player values to default, spawn at specified spawn index position.
+function resetPlayer(player, spawnPos) {
+	var nxny = spawns[spawnPos];
+	player.isDead = false;
+	player.x = nxny.x;
+	player.y = nxny.y;
+	player.dir = "d";
+	player.speed = 30;
+	player.noba = 1;
+	player.armor = 10;
+	player.isStopped = 1;
+	player.altDir = 0;
+	player.nobp = 0;
+	player.expStr = 1;
+	player.score = 0;
+}
+
+// When player requests a spawn.
 function spawnPlayer(gameID, color) {
 	var spawn = { spawn: [] };
 	var rand = Math.floor(Math.random() * 8);
 	var p = getPlayer(gameID, color);
 	if (p != false) {
-		var nxny = spawns[rand];
-		p.isDead = false;
-		p.x = nxny.x;
-		p.y = nxny.y;
-		p.dir = "d";
-		p.speed = 30;
-		p.noba = 1;
-		p.armor = 10;
-		p.isStopped = 1;
-		p.altDir = 0;
-		p.nobp = 0;
-		p.expStr = 1;
-		p.score = 0;
+		resetPlayer(p, rand);
 		spawn.spawn.push({ c: p.color, pos: rand });
 	}
 	socket.in(gameID).emit("spawn", spawn);
 }
 
+// Triggered when all bricks are blown up.
 function newGame(gameID) {
 	var game = games[gameID];
 	var spawn = { spawn: [] };
 	for (var player in game.players) {
 		var p = game.players[player];
-		var nxny = spawns[player];
-		p.isDead = false;
-		p.x = nxny.x;
-		p.y = nxny.y;
-		p.dir = "d";
-		p.speed = 30;
-		p.noba = 1;
-		p.altDir = 0;
-		p.armor = 10;
-		p.nobp = 0;
-		p.isStopped = 1;
-		p.expStr = 1;
-		p.score = 0;
+		resetPlayer(p, player);
 		spawn.spawn.push({ c: p.color, pos: player });
 	}
 	game.activeExplosions = [];
@@ -783,6 +800,8 @@ function newGame(gameID) {
 	socket.in(gameID).emit("newGame", getBoard(gameID));
 	socket.in(gameID).emit("spawn", spawn);
 }
+
+// Retrieve player list from game.
 function getPlayers(gameID) {
 	//return games[gameID].players;
 	var players = [];
@@ -810,6 +829,8 @@ function getPlayers(gameID) {
 	}
 	return players;
 }
+
+// Get room list.
 function getRoomList() {
 	var rooms = [], roomObj;
 	for (var gameID in games) {
@@ -828,6 +849,8 @@ function getRoomList() {
 	}
 	return rooms;
 }
+
+// Get active bombs in given game.
 function getActiveBombs(gameID) {
 	var ab = [];
 	for (var bomb in games[gameID].activeBombs) {
@@ -836,6 +859,8 @@ function getActiveBombs(gameID) {
 	}
 	return ab;
 }
+
+// Get active explosions in given game.
 function getActiveExplosions(gameID) {
 	var ae = [];
 	for (var exp in games[gameID].activeExplosions) {
@@ -844,6 +869,8 @@ function getActiveExplosions(gameID) {
 	}
 	return ae;
 }
+
+// Get room information from given game.
 function getRoomInfo(gameID) {
 	var roomInfo = {};
 	roomInfo.names = [];
@@ -856,6 +883,8 @@ function getRoomInfo(gameID) {
 	roomInfo.ac = games[gameID].availableColors;
 	return roomInfo;
 }
+
+// Triggered when creating a new room.
 function createGame(roomName, isServerCreated) {
 	var gameID = createGameID();
 	games[gameID] = {
@@ -876,6 +905,8 @@ function createGame(roomName, isServerCreated) {
 	pingPong(gameID);
 	return gameID;
 }
+
+// Create a unique game ID.
 function createGameID() {
 	var p = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz", gameID = "";
 	for (var n = 0; n < 6; n++) { gameID += p[Math.floor(Math.random() * p.length)]; }
