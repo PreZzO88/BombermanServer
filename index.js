@@ -145,21 +145,21 @@ socket.on('connection', function(client){
 			// If not out of bounds/collision.
 			if (!oob) {
 				// If difference between server prediction and client actual pos is less than 10px.
-				if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
+				//if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
 					p.x = data.x;
 					p.y = data.y;
 					p.dir = data.dir;
 					p.altDir = data.altDir;
 					p.isStopped = 0;
 					client.broadcast.to(client.gameID).emit('changeDir', { d: data, c: client.gameColor });
-				} else {
+				//} else {
 					// If off by more than 10px, correct pos, but accept requested direction.
-					p.dir = data.dir;
-					p.altDir = data.altDir;
-					p.isStopped = 0;
-					client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
-					client.broadcast.to(client.gameID).emit('changeDir', { d: { x: p.x, y: p.y, dir: data.dir, altDir: data.altDir }, c: client.gameColor });
-				}
+					//p.dir = data.dir;
+					//p.altDir = data.altDir;
+					//p.isStopped = 0;
+					//client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
+					//client.broadcast.to(client.gameID).emit('changeDir', { d: { x: p.x, y: p.y, dir: data.dir, altDir: data.altDir }, c: client.gameColor });
+				//}
 			} else {
 				// If out of bounds from client, correct position to last known non-offending pos and dir.
 				client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
