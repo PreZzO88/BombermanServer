@@ -129,8 +129,6 @@ socket.on('connection', function(client){
 			var p = getPlayer(client.gameID, client.gameColor);
 			if (p.isDead) {
 				spawnPlayer(client.gameID, client.gameColor);
-			} else {
-				client.send('spawnReq_failed');
 			}
 		}
 	});
@@ -174,7 +172,7 @@ socket.on('connection', function(client){
 		if (games[client.gameID].status == STATUS.PLAYING) {
 			//console.log("stopMoving: " + data.x);
 			var p = getPlayer(client.gameID, client.gameColor);
-			client.send("you should be at: " + p.x + " and " + p.y);
+			//client.send("you should be at: " + p.x + " and " + p.y);
 			if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
 				//var newX = p.x + (((p.ping / 2) / 1000) * p.speed);
 				//client.send("you should be at: " + p.x + " and " + p.y);
@@ -227,21 +225,11 @@ socket.on('connection', function(client){
 						var sync = p.ping + playerList[player].ping;
 						client.to(socketID).emit('layBomb', { r: data.r, c: data.c, o: p.color, s: sync, expStr: p.expStr, i: items });
 					}
-				} else {
-					client.send("refused bomb lay, where are you?");
 				}
 			}
 		}
 	});
 	
-	// DELETE ME WHEN DONE
-	client.on('debug', function(data) {
-		var game = games[client.gameID];
-		//eval(data);
-		client.send('bricks left: ' + game.bricksLeft);
-		//console.log("done");
-	});
-
 	// Used to calculate latency (2-way).
 	client.on('pong', function() {
 		var p = getPlayer(client.gameID, client.gameColor);
