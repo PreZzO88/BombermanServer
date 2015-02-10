@@ -47,6 +47,7 @@ function createPublicRooms(num) {
 socket.on('connection', function(client){ 
 
 	client.gamePlaying = false;
+	client.join('bmlobby');
 
 	// Player queries room list.
 	client.on('query_rooms', function() {
@@ -75,6 +76,8 @@ socket.on('connection', function(client){
 					var attemptJoin = playerJoin(gameID, client, data.n, data.c);
 					//client.send(games);
 					if (attemptJoin == true) {
+						client.leave('bmlobby');
+						socket.in('bmlobby').emit('lobbyUpd_newRoom', getRoomInfo(gameID));
 						client.emit('gameBoard', getBoard(gameID));
 						client.emit("createRoom", "Success");
 						socket.in(gameID).emit("playerJoin", { n: data.n, c: data.c });
@@ -103,6 +106,8 @@ socket.on('connection', function(client){
 			if (isValidName(data.n)) {
 				var attemptJoin = playerJoin(gameID, client, data.n, data.c);
 				if (attemptJoin == true) {
+					client.leave('bmlobby');
+					socket.in('bmlobby').emit('lobbyUpd_roomInfo', getRoomInfo(gameID));
 					client.emit('gameBoard', getBoard(gameID));
 					client.emit("joinRoom", getPlayers(gameID));
 					socket.in(gameID).emit("playerJoin", { n: data.n, c: data.c });
@@ -192,9 +197,18 @@ socket.on('connection', function(client){
 		}
 	});
 
+	client.on('debug', function() {
+		var a = games[client.gameID].board;
+		games[client.gameID].board = [];
+		console.log(games[client.gameID]);
+		games[client.gameID].board = a;
+	});
+
+
+
 	// Chat message received and broadcast.
 	client.on('chatmsg', function(data) {
-		client.broadcast.to(client.gameID).emit('chatmsg', { c: client.gameColor, msg: data });
+		client.broadcast.to(client.gameID).emit('chatmsg', { c: client.gameColor, msg: data.substr(0,300) });
 	});
 
 	// When a player lays a bomb.
@@ -359,10 +373,13 @@ function playerExit(playerSocket) {
 		for (var player in game.players) {
 			if (game.players[player].name == playerSocket.gameName) { game.players.splice(player,1); break; }
 		}
+		// Update people in lobby
+		socket.in('bmlobby').emit('lobbyUpd_roomInfo', getRoomInfo(gameID));
 		// If player leaves and room is empty, destroy room only if it's a player created one.
 		if (game.players.length == 0 && !game.serverCreated) {
 			clearTimeout(games[gameID].pingTimer);
 			clearTimeout(games[gameID].gameLoopTimer);
+			socket.in('bmlobby').emit('lobbyUpd_roomClosed', gameID);
 			delete games[gameID];
 		}
 	}
@@ -807,6 +824,7 @@ function newGame(gameID) {
 	game.bricksLeft = 198;
 	game.board = makeBoard(gameID);
 	game.status = STATUS.PLAYING;
+	game.gameLoopTimer = setTimeout(function() { gameLoop(gameID); }, tickrate);
 	socket.in(gameID).emit("newGame", getBoard(gameID));
 	socket.in(gameID).emit("spawn", spawn);
 }
