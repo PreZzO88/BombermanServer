@@ -165,6 +165,7 @@ socket.on('connection', function(client){
 				//}
 			} else {
 				// If out of bounds from client, correct position to last known non-offending pos and dir.
+				client.send('changeDirCorrect');
 				client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
 				p.isStopped = 0;
 				client.broadcast.to(client.gameID).emit('changeDir', { d: { x: p.x, y: p.y, dir: p.dir, altDir: p.altDir }, c: client.gameColor });
@@ -190,6 +191,7 @@ socket.on('connection', function(client){
 				//client.send('stopMoving2 ' + data.x);
 			} else {
 				//client.send("stopMoving: hacker!!!!!");
+				client.send('stopMovingCorrect');
 				client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
 				p.isStopped = 1;
 				client.broadcast.to(client.gameID).emit('stopMoving', { d: { x: p.x, y: p.y, dir: p.dir }, c: client.gameColor });
