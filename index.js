@@ -142,34 +142,13 @@ socket.on('connection', function(client){
 	client.on('changeDir', function(data) {
 		if (games[client.gameID].status == STATUS.PLAYING) {
 			var p = getPlayer(client.gameID, client.gameColor);
-			var calcSpeed = p.speed * games[client.gameID].delta;
-			var oob = isOutOfBoard(client.gameID, data.x, data.y, data.dir, calcSpeed);
-			//console.log(Math.abs((p.x - data.x).toFixed(2)) , Math.abs((p.y - data.y).toFixed(2)));
-			// If not out of bounds/collision.
-			if (!oob) {
-				// If difference between server prediction and client actual pos is less than 10px.
-				//if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
-					p.x = data.x;
-					p.y = data.y;
-					p.dir = data.dir;
-					p.altDir = data.altDir;
-					p.isStopped = 0;
-					client.broadcast.to(client.gameID).emit('changeDir', { d: data, c: client.gameColor });
-				//} else {
-					// If off by more than 10px, correct pos, but accept requested direction.
-					//p.dir = data.dir;
-					//p.altDir = data.altDir;
-					//p.isStopped = 0;
-					//client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
-					//client.broadcast.to(client.gameID).emit('changeDir', { d: { x: p.x, y: p.y, dir: data.dir, altDir: data.altDir }, c: client.gameColor });
-				//}
-			} else {
-				// If out of bounds from client, correct position to last known non-offending pos and dir.
-				client.send('changeDirCorrect');
-				client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
-				p.isStopped = 0;
-				client.broadcast.to(client.gameID).emit('changeDir', { d: { x: p.x, y: p.y, dir: p.dir, altDir: p.altDir }, c: client.gameColor });
-			}
+			p.changingDir = (p.dir != data.dir ? true : false);
+			p.broadcastedMoving = false;
+			//p.x = data.x;
+			//p.y = data.y;
+			p.dir = data.dir;
+			p.altDir = data.altDir;
+			p.isStopped = false;
 		}
 	});
 
@@ -179,23 +158,17 @@ socket.on('connection', function(client){
 			//console.log("stopMoving: " + data.x);
 			var p = getPlayer(client.gameID, client.gameColor);
 			//client.send("you should be at: " + p.x + " and " + p.y);
-			if (Math.abs(p.x - data.x) <= 10 && Math.abs(p.y - data.y) <= 10) {
-				//var newX = p.x + (((p.ping / 2) / 1000) * p.speed);
-				//client.send("you should be at: " + p.x + " and " + p.y);
-				//client.send("you should be at (ping corrected) only going left test: " + newX);
-				p.x = data.x;
-				p.y = data.y;
-				p.dir = data.dir;
-				p.isStopped = 1;
-				client.broadcast.to(client.gameID).emit('stopMoving', { d: data, c: client.gameColor });
-				//client.send('stopMoving2 ' + data.x);
-			} else {
-				//client.send("stopMoving: hacker!!!!!");
-				client.send('stopMovingCorrect');
-				client.emit('correct', { x: p.x, y: p.y, dir: p.dir });
-				p.isStopped = 1;
-				client.broadcast.to(client.gameID).emit('stopMoving', { d: { x: p.x, y: p.y, dir: p.dir }, c: client.gameColor });
+			//var newX = p.x + (((p.ping / 2) / 1000) * p.speed);
+			//client.send("you should be at: " + p.x + " and " + p.y);
+			//client.send("you should be at (ping corrected) only going left test: " + newX);
+			//p.x = data.x;
+			//p.y = data.y;
+			//p.dir = data.dir;
+			if (!p.isStopped) {
+				socket.in(client.gameID).emit('stopMoving', { d: { x: p.x, y: p.y, dir: p.dir }, c: p.color });
+				p.isStopped = true;
 			}
+			//client.send('stopMoving2 ' + data.x);
 		}
 	});
 
@@ -221,19 +194,17 @@ socket.on('connection', function(client){
 			var p = getPlayer(client.gameID, client.gameColor);
 			var blockAtLoc = games[client.gameID].board[data.r][data.c].b;
 			if (p.nobp < p.noba) {
-				var pcentre = getPlayerCentre(p);
-				if (pcentre.r == data.r && pcentre.c == data.c && blockAtLoc != "a") {
+				var pcentre = p.c;
+				var centerRow = Math.floor((pcentre.y - 20) / 30) + 1;
+				var centerCol = Math.floor((pcentre.x - 20) / 30) + 1;	
+				if (centerRow == data.r && centerCol == data.c && blockAtLoc != "a") {
 					p.nobp++;
 					games[client.gameID].board[data.r][data.c].b = "a";
-
+					p.lastLay = { r: data.r, c: data.c };
 					var bomb = { gid: client.gameID, row: data.r, col: data.c, o: p, expStr: p.expStr, ts: 5 - (p.ping / 1000) };
-					//var bomb2 = { gid: client.gameID, row: data.r, col: data.c, o: p, expStr: p.expStr };
-					//bomb.timer = setTimeout(function() { explode(bomb2); }, 5000 - p.ping);
 					games[client.gameID].activeBombs.push(bomb);
-					var items = getItemsBehindBricks(bomb);
 
-					//client.broadcast.to(client.gameID).emit('layBomb', { r: data.r, c: data.c, o: client.gameColor, s: client.gameLatency });
-					//var playerList = socket.nsps['/'].adapter.rooms[client.gameID];
+					var items = getItemsBehindBricks(bomb);
 					var playerList = games[client.gameID].players;
 					client.emit('layBomb', { r: data.r, c: data.c, o: p.color, s: p.ping, expStr: p.expStr, i: items });
 					for (player in playerList) {
@@ -272,8 +243,12 @@ function gameLoop(gameID) {
 		var curTS = new Date().getTime();
 		game.delta = (curTS - game.deltaLastTS) / 1000;
 		game.deltaLastTS = curTS;
+		var x, y, w, h, dir, isStopped, player, speed, assist, collision, dt;
+		dt = game.delta;
+
 		for (var i in game.players) {
 			var player = game.players[i];
+			isStopped = player.isStopped;
 			// If player is alive.
 			if (!player.isDead) {
 				if (player.armor > 0) {
@@ -282,54 +257,90 @@ function gameLoop(gameID) {
 					player.armor = 0;
 				}
 				// if player is moving
-				if (!player.isStopped) {
-					var calcSpeed = player.speed * game.delta;
-					var outOfBoard = isOutOfBoard(gameID, player.x, player.y, player.dir, calcSpeed);
-					if (!outOfBoard) {
-						//console.log("x: " + player.x);
-						switch (player.dir) {
-							case "u":
-								player.y -= calcSpeed;
-								break;
-							case "d":
-								player.y += calcSpeed;
-								break;
-							case "l":
-								player.x -= calcSpeed;
-								break;
-							case "r":
-								player.x += calcSpeed;
-								break;
-						}
-						var centre = getPlayerCentre(player);
-						//console.log(centre.r + " " + centre.c);
-						var pickedUp = checkIfItemPickup(gameID, player, centre.r, centre.c);
-						if (pickedUp !== false) {
-							socket.in(gameID).emit('pickedUp', pickedUp);
+				if (!isStopped) {
+					x = player.x;
+					y = player.y;
+					w = player.w;
+					h = player.h;
+					dir = player.dir;
+					speed = player.speed * dt;
+					assist = false;
+
+					// If player has changed direction, adjust xy, checking for collisions.
+					if (player.changingDir) {
+						var newW = (dir == "u" || dir == "d" ? 29 : 20);
+						var newH = 23;
+						//console.log(player);
+						var testNewX = player["c"].x - Math.floor(newW/2);
+						if (dir == "u" || dir == "d") {
+							// Get new x using old centre
+							//console.log("273");
+							var boundaries = calculatePlayerBoundaries(testNewX, y, newW, newH, speed);
+							var collisionLeft = (isCollision(player,boundaries.ltp) || isCollision(player,boundaries.lbp));
+							var collisionRight = (isCollision(player,boundaries.rtp) || isCollision(player,boundaries.rbp));
+							if (collisionLeft || collisionRight) { x = (Math.floor(((x - 20) / 30)) * 30) + 20 + 1; }
+							else { x = testNewX; }
 						} else {
-							if (player.armor == 0) {
-								var isPD = checkIfPlayerDead(gameID, player, centre.r, centre.c);
-								if (isPD !== false) {
-									socket.in(gameID).emit('playerDied', isPD);
+							x = testNewX;
+						}
+						player.changingDir = false;
+						updatePlayerCoor(player, x, y, dir, 0, speed);
+						socket.in(gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+						player.broadcastedMoving = true;
+					} else {
+						collision = checkForCollisions(player);
+						if (collision != false) {
+							if (collision.both) {
+								updatePlayerCoor(player, x, y, dir, 0, speed);
+								player.isStopped = true;
+								socket.in(gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
+							} else {
+								assist = checkForPlayerAssist(player.c, collision.middle, dir, collision.empty);
+								if (assist != false) {
+									switch (dir) {
+										case "u":
+											movePlayer(player, assist+1, y-speed, speed, dir);
+											break;
+										case "d":
+											movePlayer(player, assist+1, y+speed, speed, dir);
+											break;
+										case "l":
+											movePlayer(player, x-speed, assist+4, speed, dir);
+											break;
+										case "r":
+											movePlayer(player, x+speed, assist+4, speed, dir);
+											break;
+									}
+									//socket.in(gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+									//player.broadcastedMoving = true;
+								} else {
+									updatePlayerCoor(player, x, y, dir, 0, speed);
+									player.isStopped = true;
+									socket.in(gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
 								}
 							}
+						} else {
+							// If no collisions, move player.
+							movePlayer(player, x, y, speed, dir);
 						}
-					} else {
-						player.isStopped = 1;
-						//console.log("reached board border: " + player.x);
-						var data = { x: player.x, y: player.y, dir: player.dir };
-						socket.in(gameID).emit('stopMoving', { d: data, c: player.color });
-						//socket.in(gameID).send('hi ' + data.x);
 					}
-				} else {
-					// if player has stopped moving
-					if (player.armor == 0) {
-						//console.log("player armor is 0");
-						var centre = getPlayerCentre(player);
-						var isPD = checkIfPlayerDead(gameID, player, centre.r, centre.c);
+
+					//console.log(centre.r + " " + centre.c);
+					var pickedUp = checkIfItemPickup(gameID, player);
+					if (pickedUp !== false) {
+						socket.in(gameID).emit('pickedUp', pickedUp);
+					} else {
+						var isPD = checkIfPlayerDead(gameID, player);
 						if (isPD !== false) {
 							socket.in(gameID).emit('playerDied', isPD);
 						}
+					}
+				} else {
+					// if player has stopped moving
+					var centre = player.c;
+					var isPD = checkIfPlayerDead(gameID, player);
+					if (isPD !== false) {
+						socket.in(gameID).emit('playerDied', isPD);
 					}
 				}
 			}
@@ -340,24 +351,249 @@ function gameLoop(gameID) {
 	}
 }
 
-// Check if player died by entering fire or is in an active explosion.
-function checkIfPlayerDead(gameID, player, row, col) {
-	var item = games[gameID].board[row][col].b;
-	if (item == "f" || item == "g" || item == "h") {
-		player.isDead = true;
-		//console.log(games[gameID].activeExplosions);
-		var ae = games[gameID].activeExplosions.filter(function(e) { return (e.row == row && e.col == col); });
-		//console.log(ae);
-		if (ae.length >= 1) {
-			var owner = ae[0].o;
-			if (owner.color != player.color) {
-				// killed by owner of bomb
-				owner.score++;
-			} else {
-				// suicide
-				player.score--;
+function updatePlayerCoor(player, x, y, dir, altDir, speed) {
+	player.x = x;
+	player.y = y;
+	player.dir = dir;
+	player.altDir = altDir;
+	player.w = (dir == "u" || dir == "d" ? 29 : 20);
+	player.h = 23;
+	//console.log("355");
+	var boundaries = calculatePlayerBoundaries(x, y, player.w, player.h, speed);
+	for (bound in boundaries) {
+		player[bound] = boundaries[bound];
+	}
+	return true;
+}
+
+// Check for potential collisions for specified player.
+function checkForCollisions(player) {
+	var x, y, w, h, dir, speed, pair1, pair2, point, boundaries;
+	x = player.x;
+	y = player.y;
+	w = player.w;
+	h = player.h;
+	dir = player.dir;
+	speed = player.speed * games[player.gameID].delta;
+	//console.log("372");
+	boundaries = calculatePlayerBoundaries(x, y, w, h, speed);
+	switch (dir) {
+		case "u":
+			pair1 = boundaries.tlp;
+			pair2 = boundaries.trp;
+			point = "x";
+			break;
+		case "d":
+			pair1 = boundaries.blp;
+			pair2 = boundaries.brp;
+			point = "x";
+			break;
+		case "l":
+			pair1 = boundaries.ltp;
+			pair2 = boundaries.lbp;
+			point = "y";
+			break;
+		case "r":
+			pair1 = boundaries.rtp;
+			pair2 = boundaries.rbp;
+			point = "y";
+			break;
+	}
+	var collisionPair1 = isCollision(player,pair1);
+	var collisionPair2 = isCollision(player,pair2);
+	if (collisionPair1 || collisionPair2) {
+		var collision = { };
+		if (collisionPair1 == collisionPair2 || player.isDead) {
+			collision.both = true;
+		} else {
+			collision.both = false;
+			collision.middle = Math.max(pair1[point],pair2[point]);
+			collision.empty = (collisionPair1 ? pair2[point] : pair1[point]);
+		}
+		return collision;
+	} else {
+		return false;
+	}
+}
+
+// When player is near blocks and isn't necessarily inline with empty space, assist position.
+// For example, if a certain percentage of the players' sprite is occupying more near the empty space: assist.
+function checkForPlayerAssist(center, middlePoint, dir, successPoint) {
+	var middle, successCol, p;
+	switch (dir) {
+		case "u":
+		case "d":
+			middle = (Math.floor((middlePoint - 20) / 30) * 30) + 20;
+			successCol = (Math.floor((successPoint - 20) / 30) * 30) + 20;
+			p = "x";
+			break;
+		case "l":
+		case "r":
+			middle = (Math.floor((middlePoint - 20) / 30) * 30) + 20;
+			successCol = (Math.floor((successPoint - 20) / 30) * 30) + 20;
+			p = "y";
+			break;
+	}
+	
+	var diff = middle - center[p];
+	if (Math.abs(diff) > 4) {
+		// if diff is positive, means it was a left side trigger, check if empty space is to the left.
+		if (diff > 4 && successCol < middle) {
+			// Left or Top Side triggered.
+			//console.log("left top");
+			return successCol;
+		}
+		// if diff is negative, means it was a right side trigger, check if empty space is to the right.
+		else if (diff < (-1 * 4) && successCol == middle) {
+			// Right or Bottom side triggered.
+			//console.log("right bottom");
+			return successCol;
+		}
+		else {
+			return false;
+		}
+	} else {
+		return false;
+	}
+	//console.log(col + " " + center.x);
+}
+
+// Uses a pair of x,y coordinates to determine if player will collide.
+function isCollision(player, pair) {
+	var row = Math.floor((pair.y - 20) / 30) + 1;
+	var col = Math.floor((pair.x - 20) / 30) + 1;
+	var item = games[player.gameID].board[row][col].b;
+	if (item == "a") {
+		var lastBomb = player.lastLay;
+		var centerRow = Math.floor((player.c.y - 20) / 30) + 1;
+		var centerCol = Math.floor((player.c.x - 20) / 30) + 1;	
+		if (lastBomb.r == centerRow && lastBomb.c == centerCol) {
+			return false;
+		} else if (lastBomb.r == row && lastBomb.c == col) {
+			return false;
+		}
+	} else if (item == "f" || item == "g" || item == "h") {
+		return false;
+	} else if (item.match(/m|p|s|i|a/) != null) {
+		return false;
+	} else if (Object.keys(player.lastLay).length > 0) {
+		// if we are here, it's because we dont have bomb in player's space but a bomb has been laid
+		// by current player somewhere around this empty space. Check all player boundaries, and if 
+		// completely out of bomb to prevent player being locked in his own bomb.
+		//console.log("477");
+		var bounds = calculatePlayerBoundaries(player.x,player.y,player.w,player.h,player.speed * games[player.gameID].delta);
+		var outOfOwnBombBounds = true;
+		var lastBomb = player.lastLay;
+		for (var b in bounds) {
+			var centerRow = Math.floor((bounds[b].y - 20) / 30) + 1;
+			var centerCol = Math.floor((bounds[b].x - 20) / 30) + 1;	
+			if (lastBomb.r == centerRow && lastBomb.c == centerCol) {
+				// still in same space containing player's own bomb, break out.
+				outOfOwnBombBounds = false;
+				break;
 			}
-			return { c: player.color, cb: owner.color };
+		}
+		if (outOfOwnBombBounds) {
+			player.lastLay = {};
+			//console.log("completely out of own bomb bounds");
+		}
+	}
+	return (item != "e");
+}
+
+// Move player in provided direction and speed.
+function movePlayer(player, x, y, speed, dir) {
+	switch (dir) {
+		case "u": y-=speed; break;
+		case "d": y+=speed; break;
+		case "l": x-=speed; break;
+		case "r": x+=speed; break;
+	}
+	updatePlayerCoor(player, x, y, dir, player.altDir, speed);
+	if (!player.broadcastedMoving) {
+		player.broadcastedMoving = true;
+		socket.in(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+	}
+}
+
+// Calculate player boundaries, pairs of points around sprite.
+function calculatePlayerBoundaries(x, y, w, h, speed) {
+	//console.log(y,speed);
+	var boundaries = {
+		// Center
+		c: { x: Math.floor((w / 2) + x), y: Math.floor((h / 2) + y) },
+		
+		// Top left pair
+		tlp: { x: x, y: Math.floor(y-1-speed) },
+		
+		// Top right pair
+		trp: { x: x+w-1 , y: Math.floor(y-1-speed) },
+		
+		// Right top pair
+		rtp: { x: x+w-1+Math.ceil(speed), y: y },
+		
+		// Right bottom pair
+		rbp: { x: x+w-1+Math.ceil(speed), y: y+h-1 },
+		
+		// Bottom right pair
+		brp: { x: x+w-1, y: y+h-1+Math.ceil(speed) },
+		
+		// Bottom left pair
+		blp: { x: x, y: y+h-1+Math.ceil(speed) },
+		
+		// Left bottom pair
+		lbp: { x: Math.floor(x-1-speed), y: y+h-1 },
+		
+		// Left top pair
+		ltp: { x: Math.floor(x-1-speed), y: y }
+	}
+	return boundaries;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Check if player died by entering fire or is in an active explosion.
+function checkIfPlayerDead(gameID, player) {
+	// If player armor is 0, he is no longer invincible to fire.
+	if (player.armor == 0) {
+		var row = Math.floor((player["c"].y - 20) / 30) + 1;
+		var col = Math.floor((player["c"].x - 20) / 30) + 1;	
+		var item = games[gameID].board[row][col].b;
+		// check if he is in any type of fire.
+		if (item == "f" || item == "g" || item == "h") {
+			player.isDead = true;
+			//console.log(games[gameID].activeExplosions);
+			var ae = games[gameID].activeExplosions.filter(function(e) { return (e.row == row && e.col == col); });
+			//console.log(ae);
+			if (ae.length >= 1) {
+				var owner = ae[0].o;
+				if (owner.color != player.color) {
+					// killed by owner of bomb
+					owner.score++;
+				} else {
+					// suicide
+					player.score--;
+				}
+				return { c: player.color, cb: owner.color };
+			}
+		} else {
+			return false;
 		}
 	} else {
 		return false;
@@ -618,8 +854,10 @@ function makeBoard(gameID) {
 }
 
 // Check if player has just stepped over a pickable item.
-function checkIfItemPickup(gameID, player, row, col) {
+function checkIfItemPickup(gameID, player) {
 	var board = games[gameID].board;
+	var row = Math.floor((player["c"].y - 20) / 30) + 1;
+	var col = Math.floor((player["c"].x - 20) / 30) + 1;	
 	var item = board[row][col].b;
 	var pickedUp = { r: row, c: col, i: item, p: player.color };
 	switch (item) {
@@ -654,17 +892,6 @@ function createBrickObj() {
 		bomb.i = prob[rand];
 	}
 	return bomb;
-}
-
-// Retreive row and col depending on player's centre x,y location.
-function getPlayerCentre(player) {
-	var w = (player.dir == "u" || player.dir == "d" ? 29 : 20);
-	var h = 23;
-	var cx = Math.floor((w / 2) + player.x);
-	var cy = Math.floor((h / 2) + player.y);
-	var row = Math.floor((cy - 20) / 30) + 1;
-	var col = Math.floor((cx - 20) / 30) + 1;
-	return { r: row, c: col };
 }
 
 // Prevent players from escaping board border limits.
@@ -731,19 +958,25 @@ function playerJoin(gameID, socketObj, name, color) {
 	game.names.push(name);
 	game.players.push({
 		socketID: socketObj.id,
+		gameID: gameID,
 		color: color,
 		name: name,
 		x: 0,
 		y: 0,
+		w: 29,
+		h: 23,
+		broadcastedMoving: false,
 		ping: 0,
 		dir: "d",
 		altDir: 0,
 		speed: 30,
+		changingDir: false,
 		isDis: false,
 		noba: 1,
 		nobp: 0,
 		armor: 10,
-		isStopped: 1,
+		lastLay: {},
+		isStopped: true,
 		isDead: false,
 		expStr: 1,
 		score: 0
@@ -787,17 +1020,21 @@ function getPlayer(gameID, color) {
 function resetPlayer(player, spawnPos) {
 	var nxny = spawns[spawnPos];
 	player.isDead = false;
-	player.x = nxny.x;
-	player.y = nxny.y;
-	player.dir = "d";
+	//player.x = nxny.x;
+	//player.y = nxny.y;
+	//player.dir = "d";
 	player.speed = 30;
 	player.noba = 1;
 	player.armor = 10;
-	player.isStopped = 1;
-	player.altDir = 0;
+	player.isStopped = true;
+	player.broadcastedMoving = false;
+	//player.altDir = 0;
 	player.nobp = 0;
 	player.expStr = 1;
+	player.lastLay = {};
 	player.score = 0;
+	var speed = player.speed * games[player.gameID].delta;
+	updatePlayerCoor(player, nxny.x, nxny.y, "d", 0, speed);
 }
 
 // When player requests a spawn.
@@ -851,7 +1088,7 @@ function getPlayers(gameID) {
 			armor: player.armor.toFixed(4),
 			nobp: player.nobp,
 			ping: player.ping,
-			isStopped: player.isStopped,
+			isStopped: (player.isStopped == true ? 1 : 0),
 			isDead: player.isDead,
 			expStr: player.expStr,
 			score: player.score
