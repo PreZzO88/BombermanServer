@@ -524,7 +524,7 @@ function movePlayer(player, x, y, speed, dir) {
 	if (!player.broadcastedMoving) {
 		player.broadcastedMoving = true;
 		//client.broadcast.to(client.gameID).emit('chatmsg', { c: client.gameColor, msg: data.substr(0,300) });
-		socket.to(player.gameID).emit('layBomb', { r: data.r, c: data.c, o: p.color, s: sync, expStr: p.expStr, i: items });
+		socket.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
 	}
 }
 
