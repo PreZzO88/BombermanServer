@@ -144,6 +144,7 @@ socket.on('connection', function(client){
 			var p = getPlayer(client.gameID, client.gameColor);
 			p.changingDir = (p.dir != data.dir ? true : false);
 			p.broadcastedMoving = false;
+			p.sentRate = 0.500;
 			//p.x = data.x;
 			//p.y = data.y;
 			p.dir = data.dir;
