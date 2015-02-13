@@ -269,7 +269,7 @@ function gameLoop(gameID) {
 					if (player.sendRate > 0) {
 						player.sendRate -= dt;
 					} else {
-						player.sendRate = 500;
+						player.sendRate = 0.500;
 						socket.in(gameID).emit('correct', { x: x, y: y, dir: dir });
 					}
 
@@ -980,7 +980,7 @@ function playerJoin(gameID, socketObj, name, color) {
 		changingDir: false,
 		isDis: false,
 		noba: 1,
-		sendRate: 500,
+		sendRate: 0.500,
 		nobp: 0,
 		armor: 10,
 		lastLay: {},
