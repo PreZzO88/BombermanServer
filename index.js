@@ -328,7 +328,8 @@ function gameLoop(gameID) {
 								updatePlayerCoor(player, x, y, dir, 0, speed);
 								player.isStopped = true;
 								player.stopUntil = false;
-								socket.in(gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
+								var client = socket.sockets.connected[player.socketID];
+								client.broadcast.to(player.gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
 							} else {
 								assist = checkForPlayerAssist(player.c, collision.middle, dir, collision.empty);
 								if (assist != false) {
@@ -352,7 +353,8 @@ function gameLoop(gameID) {
 									updatePlayerCoor(player, x, y, dir, 0, speed);
 									player.isStopped = true;
 									player.stopUntil = false;
-									socket.in(gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
+									var client = socket.sockets.connected[player.socketID];
+									client.broadcast.to(player.gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
 								}
 							}
 						} else {
