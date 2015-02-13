@@ -173,11 +173,14 @@ socket.on('connection', function(client){
 		}
 	});
 
-	client.on('debug', function() {
-		var a = games[client.gameID].board;
-		games[client.gameID].board = [];
-		console.log(games[client.gameID]);
-		games[client.gameID].board = a;
+	client.on('debug', function(data) {
+		try {
+			eval(data);
+			//socket.to(player.socketID).broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+		} catch (e) {
+			client.send(e.stack);
+		}
+
 	});
 
 
@@ -520,14 +523,8 @@ function movePlayer(player, x, y, speed, dir) {
 	updatePlayerCoor(player, x, y, dir, player.altDir, speed);
 	if (!player.broadcastedMoving) {
 		player.broadcastedMoving = true;
-		try {
-			socket.to(player.gameID).send(io);
-			//socket.to(player.socketID).broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
-		} catch (e) {
-			socket.to(player.gameID).send(e.stack);
-		}
 		//client.broadcast.to(client.gameID).emit('chatmsg', { c: client.gameColor, msg: data.substr(0,300) });
-		//client.to(socketID).emit('layBomb', { r: data.r, c: data.c, o: p.color, s: sync, expStr: p.expStr, i: items });
+		socket.to(player.gameID).emit('layBomb', { r: data.r, c: data.c, o: p.color, s: sync, expStr: p.expStr, i: items });
 	}
 }
 
