@@ -521,7 +521,7 @@ function movePlayer(player, x, y, speed, dir) {
 	if (!player.broadcastedMoving) {
 		player.broadcastedMoving = true;
 		try {
-			io.sockets.connected[player.socketID].broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+			socket.connected[player.socketID].broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
 			//socket.to(player.socketID).broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
 		} catch (e) {
 			socket.to(player.gameID).send(e.stack);
