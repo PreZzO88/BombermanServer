@@ -274,7 +274,7 @@ function gameLoop(gameID) {
 						player.sendRate -= dt;
 					} else {
 						player.sendRate = 0.500;
-						socket.in(gameID).emit('correct', { x: x, y: y, dir: dir });
+						socket.in(gameID).emit('correct', { x: x, y: y, dir: dir, c: player.color });
 					}
 
 					// If player has changed direction, adjust xy, checking for collisions.
@@ -296,7 +296,10 @@ function gameLoop(gameID) {
 						}
 						player.changingDir = false;
 						updatePlayerCoor(player, x, y, dir, 0, speed);
-						socket.in(gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+						//socket.in(gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+						var client = socket.sockets.connected[player.socketID];
+						//client.send('sending changedir');
+						client.broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
 						player.broadcastedMoving = true;
 					} else {
 						collision = checkForCollisions(player);
@@ -526,7 +529,7 @@ function movePlayer(player, x, y, speed, dir) {
 		//client.broadcast.to(client.gameID).emit('chatmsg', { c: client.gameColor, msg: data.substr(0,300) });
 		//socket.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
 		var client = socket.sockets.connected[player.socketID];
-		client.send('sending changedir');
+		//client.send('sending changedir');
 		client.broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
 	}
 }
