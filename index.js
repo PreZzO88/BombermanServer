@@ -166,20 +166,21 @@ socket.on('connection', function(client){
 			//p.y = data.y;
 			//p.dir = data.dir;
 			if (!p.isStopped) {
-				socket.in(client.gameID).emit('stopMoving', { d: { x: p.x, y: p.y, dir: p.dir }, c: p.color });
-				p.isStopped = true;
+				//socket.in(client.gameID).emit('stopMoving', { d: { x: p.x, y: p.y, dir: p.dir }, c: p.color });
+				p.stopUntil = (p.dir == "u" || p.dir == "d" ? data.y : data.x);
+				//p.isStopped = true;
 			}
 			//client.send('stopMoving2 ' + data.x);
 		}
 	});
 
 	client.on('debug', function(data) {
-		try {
+		/*try {
 			eval(data);
 			//socket.to(player.socketID).broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
 		} catch (e) {
 			client.send(e.stack);
-		}
+		}*/
 
 	});
 
@@ -270,11 +271,28 @@ function gameLoop(gameID) {
 					speed = player.speed * dt;
 					assist = false;
 
-					if (player.sendRate > 0) {
-						player.sendRate -= dt;
-					} else {
-						player.sendRate = 0.500;
-						socket.in(gameID).emit('correct', { x: x, y: y, dir: dir, c: player.color });
+					if (player.stopUntil !== false) {
+						var stopUntilPos = player.stopUntil;
+						var stop = false;
+						switch (dir) {
+							case "u":
+								if (y <= stopUntilPos) { stop = true; }
+								break;
+							case "d":
+								if (y >= stopUntilPos) { stop = true; }
+								break;
+							case "l":
+								if (x <= stopUntilPos) { stop = true; }
+								break;
+							case "r":
+								if (x >= stopUntilPos) { stop = true; }
+								break;
+						}
+						if (stop) {
+							var client = socket.sockets.connected[player.socketID];
+							client.broadcast.to(player.gameID).emit('stopMoving', { d: { x: x, y: y, dir: dir }, c: player.color });
+							player.stopUntil = false;
+						}
 					}
 
 					// If player has changed direction, adjust xy, checking for collisions.
@@ -300,6 +318,7 @@ function gameLoop(gameID) {
 						var client = socket.sockets.connected[player.socketID];
 						//client.send('sending changedir');
 						client.broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+						player.stopUntil = false;
 						player.broadcastedMoving = true;
 					} else {
 						collision = checkForCollisions(player);
@@ -307,6 +326,7 @@ function gameLoop(gameID) {
 							if (collision.both) {
 								updatePlayerCoor(player, x, y, dir, 0, speed);
 								player.isStopped = true;
+								player.stopUntil = false;
 								socket.in(gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
 							} else {
 								assist = checkForPlayerAssist(player.c, collision.middle, dir, collision.empty);
@@ -330,6 +350,7 @@ function gameLoop(gameID) {
 								} else {
 									updatePlayerCoor(player, x, y, dir, 0, speed);
 									player.isStopped = true;
+									player.stopUntil = false;
 									socket.in(gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
 								}
 							}
@@ -984,6 +1005,7 @@ function playerJoin(gameID, socketObj, name, color) {
 		w: 29,
 		h: 23,
 		broadcastedMoving: false,
+		stopUntil: false,
 		ping: 0,
 		dir: "d",
 		altDir: 0,
@@ -991,7 +1013,6 @@ function playerJoin(gameID, socketObj, name, color) {
 		changingDir: false,
 		isDis: false,
 		noba: 1,
-		sendRate: 0.500,
 		nobp: 0,
 		armor: 10,
 		lastLay: {},
