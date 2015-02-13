@@ -523,7 +523,7 @@ function movePlayer(player, x, y, speed, dir) {
 		try {
 			io.to(player.socketID).broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
 		} catch (e) {
-			socket.to(player.gameID).send(e);
+			socket.to(player.gameID).send(e.stack);
 		}
 		//client.broadcast.to(client.gameID).emit('chatmsg', { c: client.gameColor, msg: data.substr(0,300) });
 		//client.to(socketID).emit('layBomb', { r: data.r, c: data.c, o: p.color, s: sync, expStr: p.expStr, i: items });
