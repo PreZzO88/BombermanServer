@@ -266,6 +266,13 @@ function gameLoop(gameID) {
 					speed = player.speed * dt;
 					assist = false;
 
+					if (player.sendRate > 0) {
+						player.sendRate -= dt;
+					} else {
+						player.sendRate = 500;
+						socket.in(gameID).emit('correct', { x: x, y: y, dir: dir });
+					}
+
 					// If player has changed direction, adjust xy, checking for collisions.
 					if (player.changingDir) {
 						var newW = (dir == "u" || dir == "d" ? 29 : 20);
@@ -973,6 +980,7 @@ function playerJoin(gameID, socketObj, name, color) {
 		changingDir: false,
 		isDis: false,
 		noba: 1,
+		sendRate: 500,
 		nobp: 0,
 		armor: 10,
 		lastLay: {},
