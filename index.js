@@ -292,6 +292,7 @@ function gameLoop(gameID) {
 							var client = socket.sockets.connected[player.socketID];
 							client.broadcast.to(player.gameID).emit('stopMoving', { d: { x: x, y: y, dir: dir }, c: player.color });
 							player.stopUntil = false;
+							player.isStopped = true;
 						}
 					}
 
