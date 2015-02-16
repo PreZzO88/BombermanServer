@@ -144,10 +144,10 @@ socket.on('connection', function(client){
 			var p = getPlayer(client.gameID, client.gameColor);
 			p.changingDir = (p.dir != data.dir ? true : false);
 			p.broadcastedMoving = false;
-			p.sentRate = 0.500;
 			//p.x = data.x;
 			//p.y = data.y;
 			p.dir = data.dir;
+			p.stopUntil = false;
 			p.altDir = data.altDir;
 			p.isStopped = false;
 		}
@@ -248,7 +248,7 @@ function gameLoop(gameID) {
 		var curTS = new Date().getTime();
 		game.delta = (curTS - game.deltaLastTS) / 1000;
 		game.deltaLastTS = curTS;
-		var x, y, w, h, dir, isStopped, player, speed, assist, collision, dt;
+		var x, y, w, h, dir, isStopped, player, speed, assist, collision, dt, stop;
 		dt = game.delta;
 
 		for (var i in game.players) {
@@ -270,22 +270,21 @@ function gameLoop(gameID) {
 					dir = player.dir;
 					speed = player.speed * dt;
 					assist = false;
-
+					stop = false;
 					if (player.stopUntil !== false) {
 						var stopUntilPos = player.stopUntil;
-						var stop = false;
 						switch (dir) {
 							case "u":
-								if (y <= stopUntilPos) { stop = true; }
+								if (y <= stopUntilPos) { stop = true; y = stopUntilPos; }
 								break;
 							case "d":
-								if (y >= stopUntilPos) { stop = true; }
+								if (y >= stopUntilPos) { stop = true; y = stopUntilPos; }
 								break;
 							case "l":
-								if (x <= stopUntilPos) { stop = true; }
+								if (x <= stopUntilPos) { stop = true; x = stopUntilPos; }
 								break;
 							case "r":
-								if (x >= stopUntilPos) { stop = true; }
+								if (x >= stopUntilPos) { stop = true; x = stopUntilPos; }
 								break;
 						}
 						if (stop) {
@@ -293,73 +292,77 @@ function gameLoop(gameID) {
 							client.broadcast.to(player.gameID).emit('stopMoving', { d: { x: x, y: y, dir: dir }, c: player.color });
 							player.stopUntil = false;
 							player.isStopped = true;
+							updatePlayerCoor(player, x, y, dir, 0, speed);
 						}
 					}
-
-					// If player has changed direction, adjust xy, checking for collisions.
-					if (player.changingDir) {
-						var newW = (dir == "u" || dir == "d" ? 29 : 20);
-						var newH = 23;
-						//console.log(player);
-						var testNewX = player["c"].x - Math.floor(newW/2);
-						if (dir == "u" || dir == "d") {
-							// Get new x using old centre
-							//console.log("273");
-							var boundaries = calculatePlayerBoundaries(testNewX, y, newW, newH, speed);
-							var collisionLeft = (isCollision(player,boundaries.ltp) || isCollision(player,boundaries.lbp));
-							var collisionRight = (isCollision(player,boundaries.rtp) || isCollision(player,boundaries.rbp));
-							if (collisionLeft || collisionRight) { x = (Math.floor(((x - 20) / 30)) * 30) + 20 + 1; }
-							else { x = testNewX; }
-						} else {
-							x = testNewX;
-						}
-						player.changingDir = false;
-						updatePlayerCoor(player, x, y, dir, 0, speed);
-						//socket.in(gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
-						var client = socket.sockets.connected[player.socketID];
-						//client.send('sending changedir');
-						client.broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
-						player.stopUntil = false;
-						player.broadcastedMoving = true;
-					} else {
-						collision = checkForCollisions(player);
-						if (collision != false) {
-							if (collision.both) {
-								updatePlayerCoor(player, x, y, dir, 0, speed);
-								player.isStopped = true;
-								player.stopUntil = false;
-								var client = socket.sockets.connected[player.socketID];
-								client.broadcast.to(player.gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
+					if (!stop) {
+						// If player has changed direction, adjust xy, checking for collisions.
+						if (player.changingDir) {
+							var newW = (dir == "u" || dir == "d" ? 29 : 20);
+							var newH = 23;
+							//console.log(player);
+							var testNewX = player["c"].x - Math.floor(newW/2);
+							if (dir == "u" || dir == "d") {
+								// Get new x using old centre
+								//console.log("273");
+								var boundaries = calculatePlayerBoundaries(testNewX, y, newW, newH, speed);
+								var collisionLeft = (isCollision(player,boundaries.ltp) || isCollision(player,boundaries.lbp));
+								var collisionRight = (isCollision(player,boundaries.rtp) || isCollision(player,boundaries.rbp));
+								if (collisionLeft || collisionRight) { x = (Math.floor(((x - 20) / 30)) * 30) + 20 + 1; }
+								else { x = testNewX; }
 							} else {
-								assist = checkForPlayerAssist(player.c, collision.middle, dir, collision.empty);
-								if (assist != false) {
-									switch (dir) {
-										case "u":
-											movePlayer(player, assist+1, y-speed, speed, dir);
-											break;
-										case "d":
-											movePlayer(player, assist+1, y+speed, speed, dir);
-											break;
-										case "l":
-											movePlayer(player, x-speed, assist+4, speed, dir);
-											break;
-										case "r":
-											movePlayer(player, x+speed, assist+4, speed, dir);
-											break;
-									}
-									//socket.in(gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
-									//player.broadcastedMoving = true;
-								} else {
+								x = testNewX;
+							}
+							player.changingDir = false;
+							updatePlayerCoor(player, x, y, dir, 0, speed);
+							//socket.in(gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+							var client = socket.sockets.connected[player.socketID];
+							//client.send('sending changedir');
+							client.broadcast.to(player.gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+							player.stopUntil = false;
+							player.broadcastedMoving = true;
+						} else {
+							collision = checkForCollisions(player);
+							if (collision != false) {
+								if (collision.both) {
 									updatePlayerCoor(player, x, y, dir, 0, speed);
 									player.isStopped = true;
 									player.stopUntil = false;
 									var client = socket.sockets.connected[player.socketID];
 									client.broadcast.to(player.gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
+								} else {
+									assist = checkForPlayerAssist(player.c, collision.middle, dir, collision.empty);
+									//console.log("y: " + y);
+									if (assist != false) {
+										player.broadcastedMoving = false;
+										switch (dir) {
+											case "u":
+												movePlayer(player, assist+1, y-speed, speed, dir);
+												break;
+											case "d":
+												movePlayer(player, assist+1, y+speed, speed, dir);
+												break;
+											case "l":
+												movePlayer(player, x-speed, assist+4, speed, dir);
+												break;
+											case "r":
+												movePlayer(player, x+speed, assist+4, speed, dir);
+												break;
+										}
+										//socket.in(gameID).emit('changeDir', { d: { x: player.x, y: player.y, dir: player.dir, altDir: player.altDir }, c: player.color });
+										//player.broadcastedMoving = true;
+									} else {
+										updatePlayerCoor(player, x, y, dir, 0, speed);
+										player.isStopped = true;
+										player.stopUntil = false;
+										var client = socket.sockets.connected[player.socketID];
+										client.broadcast.to(player.gameID).emit('stopMoving', { d: { x: player.x, y: player.y, dir: player.dir }, c: player.color });
+									}
 								}
+							} else {
+								// If no collisions, move player.
+								movePlayer(player, x, y, speed, dir);
 							}
-						} else {
-							// If no collisions, move player.
-							movePlayer(player, x, y, speed, dir);
 						}
 					}
 
